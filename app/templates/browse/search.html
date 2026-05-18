@@ -5,6 +5,7 @@
     <h1>Search</h1>
 
     <form method="get" action="{{ url_for('browse.search') }}" class="sf sf-search">
+        <input type="hidden" name="run" value="1">
         <div class="sf-body">
             <div class="sf-filters">
                 <div class="sf-row sf-row-search-top">
@@ -107,7 +108,7 @@
         <p class="no-results">No users found matching your criteria.</p>
         {% endif %}
     {% else %}
-    <p class="search-hint">Use the filters above to search for users.</p>
+    <p class="search-hint">Set filters (optional) and click Search, or open Search to browse all matching profiles with your chosen sort.</p>
     {% endif %}
 </div>
 {% endblock %}

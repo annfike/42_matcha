@@ -66,7 +66,8 @@ def search():
     filters = {k: v for k, v in filters.items() if v}
     results = []
     total_pages = 1
-    searched = any(filters.values())
+    # run=1 is set when the user clicks Search; empty filters then mean "all eligible profiles"
+    searched = request.args.get("run") == "1"
     if searched:
         all_results = search_users(current_user, filters=filters, sort_by=sort_by, limit=500)
         total = len(all_results)

@@ -46,7 +46,7 @@ def get_profile_completion_status(user_id):
 
     lat, lng = row.get("latitude"), row.get("longitude")
     if lat is None or lng is None:
-        missing.append("location coordinates (GPS or manual lat/lng)")
+        missing.append("location")
     elif not row.get("location_enabled"):
         place = (row.get("location_place") or "").strip()
         if not place:

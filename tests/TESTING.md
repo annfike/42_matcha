@@ -2,11 +2,45 @@
 
 ## Overview
 
-The test suite uses pytest with pytest-flask for Flask integration testing. Tests run against an in-memory SQLite database, so PostgreSQL is not required for testing.
+The test suite uses **pytest** with Flask’s built-in test client (`app.test_client()`). Tests exercise HTTP routes and SQL against a **real PostgreSQL database** named `matcha_test`, not SQLite.
+
+The app talks to the database through **psycopg2** and `app/database.py` (`query_one`, `execute`, `execute_returning`). There is no SQLAlchemy ORM in this project.
+
+`pytest-flask` is listed in `requirements.txt`; fixtures are defined manually in `tests/conftest.py` via `create_app(TestConfig)`.
+
+**Seed data is separate:** `python scripts/seed_data.py` fills `matcha_db` for manual demos. Tests never use the seeder; they create minimal rows in fixtures.
+
+## Prerequisites
+
+1. **PostgreSQL** running locally (same server as development).
+2. **`.env`** with a working `DATABASE_URL` for your dev DB, for example:
+   ```
+   DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/matcha_db
+   ```
+3. **Test database** `matcha_test` on that server. Tests derive the URL automatically: same host/user/password as `DATABASE_URL`, database name `matcha_test` (see `conftest.py` → `_test_db_url()`).
+
+### Create `matcha_test`
+
+Use the same PostgreSQL user as in `DATABASE_URL` (not necessarily your Windows login).
+
+**psql (recommended on Windows):**
+
+```bash
+# Example — adjust user, host, port to match .env
+psql -U postgres -h localhost -p 5432 -c "CREATE DATABASE matcha_test;"
+```
+
+**Or inside psql:**
+
+```sql
+CREATE DATABASE matcha_test;
+```
+
+If `createdb` fails with “password authentication failed”, your shell user does not match the PostgreSQL role — use `psql -U ...` with credentials from `.env` instead.
 
 ## Setup
 
-Install test dependencies:
+From the project root, with the virtual environment activated:
 
 ```bash
 pip install -r requirements.txt
@@ -20,156 +54,164 @@ Run all tests:
 pytest
 ```
 
-Run with verbose output:
+Verbose output:
 
 ```bash
 pytest -v
 ```
 
-Run specific test file:
+Single file, class, or test:
 
 ```bash
 pytest tests/test_auth.py
-```
-
-Run specific test class:
-
-```bash
 pytest tests/test_auth.py::TestRegister
-```
-
-Run specific test:
-
-```bash
 pytest tests/test_auth.py::TestRegister::test_register_success
 ```
 
-Run with coverage report:
+Coverage (optional):
 
 ```bash
 pip install pytest-cov
 pytest --cov=app --cov-report=html
 ```
 
-## Test Structure
+## How a test run works
+
+1. **`app` fixture** — `create_app(TestConfig)` with `TESTING=True`, `DATABASE_URL` pointing at `matcha_test`.
+2. **Schema** — `migrations/schema.sql` is executed on a fresh connection (all tables created).
+3. **Test** — uses `client` / `logged_in_client` and optional `user` / `user2` fixtures.
+4. **Teardown** — related tables are `DROP`ped so the next test starts clean.
+
+Each test function that uses `app` gets this cycle. Fixtures `user` / `user2` insert verified users with profile picture, tags, birth date, and GPS coordinates (Geneva area) so browse/like tests can run.
+
+## Test structure
 
 ```
 tests/
-├── __init__.py
-├── conftest.py        # Shared fixtures
-├── test_auth.py       # Authentication tests
-├── test_browse.py     # Browse, like, block tests
-├── test_models.py     # Database model tests
-└── test_utils.py      # Utility function tests
+├── conftest.py        # TestConfig, app/client fixtures, test users
+├── test_auth.py       # Register, login, logout, resend verification
+├── test_browse.py     # Suggestions, search, like, unlike, block
+├── test_models.py     # DB constraints and inserts (raw SQL)
+├── test_utils.py      # Validators, matching math, tags, place labels
+└── TESTING.md         # This file
 ```
 
-## Fixtures (conftest.py)
+## Fixtures (`conftest.py`)
 
 | Fixture | Description |
 |---------|-------------|
-| `app` | Flask application with test config (SQLite in-memory) |
-| `client` | Flask test client |
-| `runner` | CLI test runner |
-| `user` | Creates a verified test user (username: `testuser`) |
-| `user2` | Creates a second verified test user (username: `testuser2`) |
-| `logged_in_client` | Test client with authenticated session |
+| `app` | Flask app on `matcha_test`; applies `schema.sql`, drops tables after test |
+| `client` | Unauthenticated Flask test client |
+| `runner` | Flask CLI test runner |
+| `user` | Verified user `testuser` / `test@example.com`, password `Test1234!`, profile photo, tag `music`, location set |
+| `user2` | Second user `testuser2` / `test2@example.com`, tag `travel` |
+| `logged_in_client` | `client` after `POST /auth/login` as `testuser` |
 
-## Test Files
+## Test files
 
-### test_auth.py
+### `test_auth.py`
 
-Tests for user authentication flows.
+Authentication flows (no real email is sent).
 
-| Test Class | Test | Description |
-|------------|------|-------------|
-| `TestRegister` | `test_register_page_loads` | Register page returns 200 |
-| | `test_register_success` | Valid registration creates user |
-| | `test_register_password_mismatch` | Mismatched passwords show error |
-| | `test_register_weak_password` | Weak password rejected |
-| | `test_register_invalid_email` | Invalid email format rejected |
-| | `test_register_invalid_username` | Invalid username format rejected |
-| | `test_register_duplicate_email` | Duplicate email rejected |
-| `TestLogin` | `test_login_page_loads` | Login page returns 200 |
-| | `test_login_success` | Valid credentials log in user |
-| | `test_login_wrong_password` | Wrong password shows error |
-| | `test_login_nonexistent_user` | Nonexistent user shows error |
-| `TestResendVerification` | `test_resend_verification_page_loads` | Resend verification page returns 200 |
-| | `test_resend_verification_generates_token` | Unverified user receives new verification token |
-| `TestLogout` | `test_logout` | Logout redirects and shows message |
+| Test class | Tests | What is checked |
+|------------|-------|-----------------|
+| `TestRegister` | page load, success, password mismatch, weak password, invalid email/username, duplicate email | HTTP responses and `users` row |
+| `TestLogin` | page load, success, wrong password, unknown user | Session / flash messages |
+| `TestResendVerification` | page load, token generation | `verification_token` set for unverified user |
+| `TestLogout` | logout | Redirect and “logged out” message |
 
-### test_utils.py
+### `test_utils.py`
 
-Tests for utility functions.
+Pure Python helpers (no HTTP).
 
-| Test Class | Test | Description |
-|------------|------|-------------|
-| `TestPasswordStrength` | `test_strong_password` | Valid password passes |
-| | `test_short_password` | < 8 chars rejected |
-| | `test_no_uppercase` | Missing uppercase rejected |
-| | `test_no_lowercase` | Missing lowercase rejected |
-| | `test_no_digit` | Missing digit rejected |
-| `TestSanitizeString` | `test_strips_whitespace` | Trims leading/trailing spaces |
-| | `test_removes_html` | Strips HTML tags |
-| | `test_truncates_length` | Respects max length |
-| | `test_none_input` | Handles None gracefully |
-| `TestValidators` | `test_valid_email` | Valid emails pass |
-| | `test_invalid_email` | Invalid emails rejected |
-| | `test_valid_username` | Valid usernames pass |
-| | `test_invalid_username` | Invalid usernames rejected |
-| | `test_valid_name` | Valid names pass |
-| | `test_invalid_name` | Invalid names rejected |
-| `TestMatching` | `test_calculate_age` | Age calculation correct |
-| | `test_calculate_age_none` | None birth date returns None |
-| | `test_haversine_distance` | Distance calculation correct |
-| | `test_haversine_same_point` | Same point returns 0 |
+| Test class | What is checked |
+|------------|-----------------|
+| `TestPasswordStrength` | `is_password_strong` rules |
+| `TestSanitizeString` | trim, HTML strip, length, `None` |
+| `TestValidators` | email, username, name |
+| `TestMatching` | `calculate_age`, `haversine_distance` |
+| `TestCanonicalTags` | `canonical_tag_name`, `tags_display_form_value`, `split_tags_input` |
+| `TestBuildPlaceLabel` | `build_place_label_from_address` (reverse geocode labels) |
 
-### test_models.py
+### `test_models.py`
 
-Tests for SQLAlchemy models.
+Database layer and PostgreSQL constraints via raw SQL (not ORM models).
 
-| Test Class | Test | Description |
-|------------|------|-------------|
-| `TestUserModel` | `test_create_user` | User creation with defaults |
-| | `test_user_unique_username` | Duplicate username raises error |
-| | `test_user_unique_email` | Duplicate email raises error |
-| `TestTagModel` | `test_create_tag` | Tag creation works |
-| | `test_tag_lowercase` | Tags normalized to lowercase |
-| `TestLikeModel` | `test_create_like` | Like creation works |
-| | `test_like_unique_constraint` | Duplicate like raises error |
-| `TestBlockModel` | `test_create_block` | Block creation works |
-| `TestMessageModel` | `test_create_message` | Message creation with defaults |
-| `TestNotificationModel` | `test_create_notification` | Notification creation with defaults |
+| Test class | What is checked |
+|------------|-----------------|
+| `TestUserModel` | insert defaults (`fame_rating`, `email_verified`), unique username/email |
+| `TestTagModel` | tag insert |
+| `TestLikeModel` | like insert, unique `(liker_id, liked_id)` |
+| `TestBlockModel` | block insert |
+| `TestMessageModel` | message insert, `is_read` default |
+| `TestNotificationModel` | notification insert, `is_read` default |
 
-### test_browse.py
+### `test_browse.py`
 
-Tests for browsing and user interactions.
+Browse routes (requires login except redirect tests).
 
-| Test Class | Test | Description |
-|------------|------|-------------|
-| `TestSuggestions` | `test_suggestions_requires_login` | Unauthenticated redirected |
-| | `test_suggestions_page_loads` | Authenticated user sees page |
-| `TestSearch` | `test_search_requires_login` | Unauthenticated redirected |
-| | `test_search_page_loads` | Authenticated user sees page |
-| `TestLike` | `test_like_user` | Liking creates Like record |
-| | `test_cannot_like_self` | Self-like prevented |
-| `TestUnlike` | `test_unlike_user` | Unliking removes Like record |
-| `TestBlock` | `test_block_user` | Blocking creates Block record |
-| | `test_cannot_like_blocked_user` | Cannot like blocked user |
+| Test class | What is checked |
+|------------|-----------------|
+| `TestSuggestions` | 302 when guest, 200 when logged in |
+| `TestSearch` | same |
+| `TestLike` | like creates row; self-like does not |
+| `TestUnlike` | unlike removes row |
+| `TestBlock` | block row; cannot like blocked user |
 
-## Test Configuration
+## Test configuration
 
-Tests use a separate configuration defined in `conftest.py`:
+Defined in `tests/conftest.py`:
 
 ```python
+def _test_db_url():
+    base = os.environ.get("DATABASE_URL", "postgresql://localhost/matcha_db")
+    parts = base.rsplit("/", 1)
+    return parts[0] + "/matcha_test"
+
+
 class TestConfig:
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
-    WTF_CSRF_ENABLED = False
+    DATABASE_URL = _test_db_url()
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL  # legacy key; app uses DATABASE_URL
     SECRET_KEY = "test-secret-key"
+    WTF_CSRF_ENABLED = False
     UPLOAD_FOLDER = "/tmp/test_uploads"
+    MAX_CONTENT_LENGTH = 5 * 1024 * 1024
 ```
 
-Key differences from production:
-- SQLite in-memory database (no PostgreSQL needed)
-- CSRF protection disabled for easier form testing
+Differences from production:
+
+- Database name `matcha_test` instead of `matcha_db`
+- `TESTING = True` (e.g. skips some `before_request` hooks)
+- CSRF disabled for simpler form posts in tests
 - Temporary upload folder
+
+## What is not covered by automated tests
+
+These are expected to be checked manually (see evaluation checklist):
+
+- WebRTC / video calls and Socket.IO (`python run.py`, not `flask run`)
+- Real email delivery
+- OAuth providers
+- File upload UI and image processing edge cases
+- Map (Leaflet) and live geocoding / Nominatim rate limits
+- Large suggestion lists (use `scripts/seed_data.py` on `matcha_db` for that)
+
+## Troubleshooting
+
+| Problem | Likely cause |
+|---------|----------------|
+| `connection refused` / `database "matcha_test" does not exist` | PostgreSQL not running or DB not created |
+| `password authentication failed` | Wrong user in `DATABASE_URL` or `createdb` without `-U` |
+| `relation "users" does not exist` | `schema.sql` failed; check migrations match code |
+| DeprecationWarning from `eventlet` / `distutils` | Harmless when `create_app()` loads Socket.IO; tests still pass |
+
+## Relation to development data
+
+| | Development / demo | Tests |
+|--|-------------------|--------|
+| Database | `matcha_db` | `matcha_test` |
+| Data | `python scripts/seed_data.py` (500 users) | Fixtures in `conftest.py` (1–2 users) |
+| Password for seeded users | `Test1234!` | Same for fixture users |
+
+Running `pytest` does not modify `matcha_db`.

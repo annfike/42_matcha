@@ -183,25 +183,25 @@ This creates users with random names, locations (Swiss cities), tags, likes, and
 
 ## Testing
 
-Run tests with pytest:
+Tests use **pytest** against a separate PostgreSQL database **`matcha_test`** (same server/credentials as `DATABASE_URL` in `.env`, different database name). The schema is applied from `migrations/schema.sql` per test; this is independent of seed data on `matcha_db`.
+
+Create the test database once (adjust user/host to match `.env`):
+
+```bash
+psql -U postgres -h localhost -c "CREATE DATABASE matcha_test;"
+```
+
+Run tests from the project root (virtualenv active, dependencies installed):
 
 ```bash
 pytest
-```
-
-Run with verbose output:
-
-```bash
 pytest -v
-```
-
-Run specific test file:
-
-```bash
 pytest tests/test_auth.py
 ```
 
-Tests use SQLite in-memory database and don't require PostgreSQL.
+Optional coverage: `pip install pytest-cov` then `pytest --cov=app --cov-report=html`.
+
+Full setup, fixtures, and troubleshooting: [tests/TESTING.md](tests/TESTING.md).
 
 ## Features
 

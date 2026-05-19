@@ -2,121 +2,45 @@
 
 A dating website built with Flask and PostgreSQL. Users register, verify email, complete their profile, browse suggestions, like profiles, chat in real time, and receive notifications.
 
+**Full setup from scratch:** [docs/getting-started.md](docs/getting-started.md)  
+**OAuth (Google, GitHub, 42 Intra):** [docs/oauth-setup.md](docs/oauth-setup.md)
+
 ## Tech stack
 
 | Layer | Technology |
 |-------|------------|
 | Backend | Flask (Python) |
-| Database | PostgreSQL |
+| Database | PostgreSQL (`psycopg2`, parameterized SQL) |
 | Frontend | HTML, CSS, JavaScript |
-| Real-time | Flask-SocketIO (chat, notifications) |
+| Real-time | Flask-SocketIO (chat, notifications, call signaling) |
 | Email | Flask-Mail |
 | Auth | Flask-Login, Flask-Bcrypt |
-| File upload | Werkzeug (images) |
-| Location | JavaScript Geolocation API + fallback |
+| OAuth | Authlib (Google, GitHub, 42 Intra — optional) |
+| File upload | Werkzeug + Pillow (images) |
+| Location | JavaScript Geolocation API + manual city fallback |
 | Maps | Leaflet.js (interactive user map) |
-| OAuth | Authlib (Google OAuth) |
 
 ## Prerequisites
 
 - Python 3.8+
 - PostgreSQL
-- (Optional) SMTP server for email (e.g. Gmail) for verification and password reset
+- SMTP (recommended) for email verification and password reset (e.g. Gmail with an app password)
 
-## Installation
-
-1. Clone the repo and go to the project directory:
+## Quick start
 
 ```bash
-cd matcha
-```
-
-2. Create a virtual environment and activate it:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate   # Linux/macOS
-# or: venv\Scripts\activate   # Windows
-```
-
-3. Install dependencies:
-
-```bash
+git clone <repository-url> matcha && cd matcha
+python3 -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-4. Copy environment template and set your values:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env`: set `SECRET_KEY`, `DATABASE_URL`, and optionally `MAIL_*` for email.
-If you don't want to configure SMTP for evaluation, set `SHOW_VERIFICATION_LINK=True` to display the verification link on screen after registration.
-
-5. Create the PostgreSQL database:
-
-```bash
+cp .env.example .env                                # edit SECRET_KEY, DATABASE_URL, MAIL_*
 createdb matcha_db
-```
-
-Or in `psql`: `CREATE DATABASE matcha_db;`
-
-To open the database:
-
-From the shell:
-
-```bash
-psql matcha_db
-```
-
-With an explicit user (enter the password when prompted):
-
-```bash
-psql -U user -d matcha_db
-```
-
-Using the same URL as in `.env`:
-
-```bash
-psql "postgresql://user:password@localhost/matcha_db"
-```
-
-If you are already in `psql` (connected to `postgres` or another database), switch to `matcha_db`:
-
-```sql
-\c matcha_db
-```
-
-Or:
-
-```sql
-\connect matcha_db
-```
-
-Useful commands inside `psql`: list tables `\dt`, quit `\q`.
-
-6. Run migrations:
-
-```bash
 export FLASK_APP=run.py
 flask init-db
-```
-
-Windows (PowerShell):
-
-```powershell
-$env:FLASK_APP="run.py"
-flask init-db
-```
-
-Note: this project uses `migrations/schema.sql` applied by the custom `flask init-db` command (not Flask-Migrate).
-
-7. (Optional) Create `app/uploads` for user images:
-
-```bash
 mkdir -p app/uploads
+python run.py
 ```
+
+Open **http://127.0.0.1:5001** (default port when using `run.py`). Step-by-step details, troubleshooting, and optional seed/tests: [docs/getting-started.md](docs/getting-started.md).
 
 ## Environment variables
 
@@ -130,145 +54,129 @@ mkdir -p app/uploads
 | `MAIL_PORT` | SMTP port | `587` |
 | `MAIL_USE_TLS` | Use TLS | `True` |
 | `MAIL_USERNAME` | SMTP login | Your email |
-| `MAIL_PASSWORD` | SMTP password / app password | Your password |
+| `MAIL_PASSWORD` | SMTP password / app password | App password |
 | `UPLOAD_FOLDER` | Path for uploads | `./app/uploads` |
 | `MAX_CONTENT_LENGTH` | Max upload size (bytes) | `5242880` (5MB) |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID (optional) | From Google Cloud Console |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret (optional) | From Google Cloud Console |
-
+| `PORT` | Port for `python run.py` | `5001` (default) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth (optional) | See [docs/oauth-setup.md](docs/oauth-setup.md) |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth (optional) | See [docs/oauth-setup.md](docs/oauth-setup.md) |
+| `INTRA42_CLIENT_ID` / `INTRA42_CLIENT_SECRET` | 42 Intra OAuth (optional) | See [docs/oauth-setup.md](docs/oauth-setup.md) |
 
 ## Run the app
+
+**Recommended** (WebSockets for chat, notifications, video calls):
+
+```bash
+python run.py
+```
+
+Listens on `0.0.0.0` at port **5001** by default, or set `PORT` in the environment.
+
+**Alternative** (basic HTTP only, no SocketIO server):
 
 ```bash
 export FLASK_APP=run.py
 flask run
 ```
 
-Or:
+Typically `http://127.0.0.1:5000` — prefer `python run.py` for full functionality.
+
+## Database
+
+Schema is applied from `migrations/schema.sql` via:
 
 ```bash
-python run.py
+export FLASK_APP=run.py
+flask init-db
 ```
 
-By default the app listens on `http://127.0.0.1:5000`. With `run.py` it binds to `0.0.0.0` and port 5000 (or `PORT` env var).
+This is a custom Flask CLI command, not Flask-Migrate.
 
 ## Project structure
 
 ```
 matcha/
 ├── app/
-│   ├── __init__.py          # Flask app factory
-│   ├── config.py            # Configuration
-│   ├── models.py            # SQLAlchemy models
+│   ├── __init__.py           # Flask app factory, blueprints, init-db
+│   ├── config.py
+│   ├── database.py           # PostgreSQL connection pool, query helpers
+│   ├── models.py             # User model (Flask-Login), make_user()
 │   ├── routes/
-│   │   ├── auth.py          # Register, login, logout, verify, reset password
-│   │   ├── profile.py       # Profile editing, images, location, viewing other profiles
-│   │   ├── browse.py        # Suggestions, search, like/unlike, block, report
-│   │   ├── chat.py          # Real-time chat with WebSocket (Flask-SocketIO)
-│   │   ├── notifications.py # Real-time notifications with WebSocket
-│   │   ├── map.py           # Interactive user map (Leaflet.js)
-│   │   ├── oauth.py         # Google OAuth authentication
-│   │   ├── events.py        # Date/event scheduling for matches
-│   │   └── videochat.py     # WebRTC video/audio calls
-│   ├── templates/
-│   │   ├── base.html
-│   │   ├── auth/            # register, login, reset_password
-│   │   ├── browse/          # suggestions, search
-│   │   ├── profile/         # edit, view, visitors, likes
-│   │   ├── chat/            # index (list), conversation
-│   │   └── notifications/   # index (list)
-│   ├── static/css/style.css
-│   ├── utils/
-│   │   ├── security.py       # Password validation, sanitization
-│   │   ├── validators.py     # Email, username, name validation
-│   │   ├── email.py          # Verification and reset emails
-│   │   ├── images.py         # Image upload, resize, validation
-│   │   ├── fame.py           # Fame rating calculation
-│   │   ├── matching.py       # Matching algorithm, search, distance
-│   │   ├── notifications.py  # WebSocket notification emit helper
-│   │   └── common_words.txt  # For password strength check
-│   └── uploads/             # User-uploaded images
+│   │   ├── auth.py           # Register, login, verify, reset password
+│   │   ├── profile.py        # Profile, images, location, visitors
+│   │   ├── browse.py         # Suggestions, search, like, block, report
+│   │   ├── chat.py           # Real-time chat (SocketIO)
+│   │   ├── notifications.py  # Real-time notifications (SocketIO)
+│   │   ├── map.py            # User map (Leaflet)
+│   │   ├── oauth.py          # Google, GitHub, 42 Intra OAuth
+│   │   ├── events.py         # Date/event scheduling
+│   │   └── videochat.py      # WebRTC calls (SocketIO signaling)
+│   ├── templates/            # Jinja2 HTML (+ email templates)
+│   ├── static/               # CSS, JS (chat, map, videochat)
+│   ├── utils/                # validators, email, images, matching, …
+│   └── uploads/              # User-uploaded images
+├── docs/
+│   ├── getting-started.md
+│   └── oauth-setup.md
+├── migrations/
+│   └── schema.sql
 ├── scripts/
-│   └── seed_data.py         # Generate 500+ test profiles
+│   └── seed_data.py
 ├── tests/
-│   ├── conftest.py          # Pytest fixtures
-│   ├── test_auth.py         # Auth tests
-│   ├── test_browse.py       # Browse/like/block tests
-│   ├── test_models.py       # Model tests
-│   └── test_utils.py        # Utility function tests
-├── migrations/               # Flask-Migrate (created by flask db init)
 ├── .env.example
-├── .gitignore
 ├── requirements.txt
-├── run.py
-├── PROJECT_PLAN.md           # Full roadmap and DB schema
-└── README.md
+└── run.py
 ```
 
 ## Seed data
-
-Generate 500+ test profiles with random data:
 
 ```bash
 python scripts/seed_data.py
 ```
 
-This creates users with random names, locations (Swiss cities), tags, likes, and profile views. All test users have password `Test1234!`.
+Creates 500+ test profiles (Swiss cities, tags, likes, views). Password for all seeded users: `Test1234!`
 
 ## Testing
 
-Tests use **pytest** against a separate PostgreSQL database **`matcha_test`** (same server/credentials as `DATABASE_URL` in `.env`, different database name). The schema is applied from `migrations/schema.sql` per test; this is independent of seed data on `matcha_db`.
-
-Create the test database once (adjust user/host to match `.env`):
+Uses PostgreSQL database **`matcha_test`** (separate from `matcha_db`). See [tests/TESTING.md](tests/TESTING.md).
 
 ```bash
 psql -U postgres -h localhost -c "CREATE DATABASE matcha_test;"
-```
-
-Run tests from the project root (virtualenv active, dependencies installed):
-
-```bash
 pytest
-pytest -v
-pytest tests/test_auth.py
 ```
-
-Optional coverage: `pip install pytest-cov` then `pytest --cov=app --cov-report=html`.
-
-Full setup, fixtures, and troubleshooting: [tests/TESTING.md](tests/TESTING.md).
 
 ## Features
 
-- **Pagination**: User lists are paginated (20 per page)
-- **HTML Emails**: Beautiful responsive email templates for verification and password reset
-- **Logging**: User actions logged to `app.log` (auth, errors)
-- **Caching**: Flask-Caching for frequently accessed data (tags list)
+- Email registration with verification and password reset (HTML emails)
+- Profile completion gate before browsing
+- Suggestions, search, likes, blocks, reports, fame rating
+- Real-time chat and notifications (SocketIO)
+- Pagination (20 per page)
+- Logging to `app.log`
+- Flask-Caching for tag lists
 
 ## Bonus features
 
-- **Google OAuth**: Sign in/register with Google account
-- **Interactive map**: Leaflet.js map showing nearby users with GPS localization
-- **Photo gallery**: Drag-and-drop upload, reorder images, basic editing (rotate, flip, brightness, contrast)
-- **Video/audio chat**: WebRTC peer-to-peer video calls for matched users
-- **Event scheduling**: Create, accept/decline date invitations with matched users
+- **OAuth:** Google, GitHub, 42 Intra ([setup guide](docs/oauth-setup.md))
+- **Interactive map:** Leaflet.js, nearby users, GPS + manual city
+- **Photo gallery:** drag-and-drop, reorder, rotate/flip/brightness/contrast
+- **Video/audio chat:** WebRTC for matched users
+- **Event scheduling:** create and accept/decline date invitations with matches
 
 ## Security
 
-- **SQL Injection**: SQLAlchemy ORM with parameterized queries
-- **XSS**: Jinja2 auto-escaping, input sanitization
-- **CSRF**: Flask-WTF CSRF protection on all POST forms
-- **Passwords**: bcrypt hashing, strength validation (8+ chars, mixed case, numbers)
-- **File uploads**: Extension + MIME validation, PIL image verification, UUID renaming, size limits (5MB)
-- **Input validation**: Server-side and client-side (HTML5) validation
+- **SQL injection:** parameterized queries (`psycopg2`) — no string-concatenated SQL
+- **XSS:** Jinja2 auto-escaping, input sanitization
+- **CSRF:** Flask-WTF on POST forms
+- **Passwords:** bcrypt, strength rules (length, mixed case, numbers)
+- **Uploads:** extension + MIME checks, PIL verification, UUID filenames, 5MB limit
+- **Secrets:** `.env` in `.gitignore`; use `.env.example` as template
 
 ## Database schema
 
-- **users** – auth, profile fields, location, fame_rating, email_verified, tokens, is_online, last_seen
-- **user_images** – per-user images, profile picture, order
-- **tags** / **user_tags** – interest tags (many-to-many)
-- **likes** – liker_id, liked_id (unique pair)
-- **profile_views** – viewer, viewed, viewed_at
-- **blocks** – blocker, blocked (unique pair)
-- **reports** – reporter, reported, reason
-- **messages** – sender, receiver, content, is_read
-- **notifications** – user, type (like, view, message, match, unlike), related_user, is_read
+- **users** — auth, profile, location, fame_rating, email_verified, tokens, online status
+- **user_images** — photos, profile picture, order
+- **tags** / **user_tags** — interests (many-to-many)
+- **likes**, **profile_views**, **blocks**, **reports**
+- **messages**, **notifications**
+- **events** — scheduled dates between matched users (pending / accepted / declined / cancelled)

@@ -54,12 +54,112 @@
         </div>
     </footer>
     {% if current_user.is_authenticated %}
+    <div id="incoming-call-modal" class="incoming-call-modal" style="display:none;" aria-hidden="true">
+        <div class="incoming-call-backdrop"></div>
+        <div class="incoming-call-panel" role="dialog" aria-labelledby="incoming-call-title">
+            <h2 id="incoming-call-title">Incoming video call</h2>
+            <p class="incoming-call-from"><strong id="incoming-call-name"></strong> is calling you</p>
+            <div class="incoming-call-actions">
+                <button type="button" class="btn" id="incoming-call-accept">Accept</button>
+                <button type="button" class="btn btn-secondary" id="incoming-call-decline">Decline</button>
+            </div>
+        </div>
+    </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+    .incoming-call-modal {
+        position: fixed;
+        inset: 0;
+        z-index: 2000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .incoming-call-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.55);
+    }
+    .incoming-call-panel {
+        position: relative;
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem 1.75rem;
+        max-width: 360px;
+        width: 90%;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        text-align: center;
+    }
+    .incoming-call-panel h2 {
+        margin: 0 0 0.5rem;
+        font-size: 1.25rem;
+    }
+    .incoming-call-from {
+        margin: 0 0 1.25rem;
+        color: #555;
+    }
+    .incoming-call-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+    }
+    .incoming-call-actions .btn {
+        min-width: 100px;
+    }
+    </style>
     <script>
     (function() {
         var socket = io();
         var badge = document.getElementById('notif-count');
         var msgBadge = document.getElementById('msg-count');
+        var callModal = document.getElementById('incoming-call-modal');
+        var callNameEl = document.getElementById('incoming-call-name');
+        var callAcceptBtn = document.getElementById('incoming-call-accept');
+        var callDeclineBtn = document.getElementById('incoming-call-decline');
+        var pendingCall = null;
+
+        function hideIncomingCall() {
+            if (callModal) {
+                callModal.style.display = 'none';
+                callModal.setAttribute('aria-hidden', 'true');
+            }
+            pendingCall = null;
+        }
+
+        function showIncomingCall(data) {
+            if (!callModal || !data || !data.caller_id) return;
+            pendingCall = data;
+            if (callNameEl) {
+                callNameEl.textContent = data.caller_name || 'Someone';
+            }
+            callModal.style.display = 'flex';
+            callModal.setAttribute('aria-hidden', 'false');
+        }
+
+        if (callAcceptBtn) {
+            callAcceptBtn.addEventListener('click', function() {
+                if (!pendingCall) return;
+                var url = '/videochat/call/' + pendingCall.caller_id + '?incoming=1';
+                hideIncomingCall();
+                window.location.href = url;
+            });
+        }
+        if (callDeclineBtn) {
+            callDeclineBtn.addEventListener('click', function() {
+                if (pendingCall && pendingCall.room) {
+                    socket.emit('call_declined', { room: pendingCall.room });
+                }
+                hideIncomingCall();
+            });
+        }
+
+        socket.on('incoming_call', function(data) {
+            if (window.location.pathname.indexOf('/videochat/call/') === 0) return;
+            showIncomingCall(data);
+        });
+
+        socket.on('call_ended', hideIncomingCall);
+        socket.on('call_declined', hideIncomingCall);
 
         function updateNotifCount() {
             fetch('{{ url_for("notifications.count") }}')

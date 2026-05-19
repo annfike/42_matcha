@@ -8,6 +8,7 @@
      data-my-user-name="{{ current_user.first_name }}"
      data-other-user-id="{{ other_user.id }}"
      data-other-user-name="{{ other_user.first_name }}"
+     data-incoming="{{ '1' if request.args.get('incoming') == '1' else '0' }}"
      data-redirect-url="{{ url_for('chat.conversation', user_id=other_user.id) }}">
     <div class="call-header">
         <h1>Video Call with {{ other_user.first_name }}</h1>
@@ -42,7 +43,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
 <style>
 .videochat-page {
     max-width: 1000px;

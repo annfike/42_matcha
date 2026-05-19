@@ -62,6 +62,40 @@ createdb matcha_db
 
 Or in `psql`: `CREATE DATABASE matcha_db;`
 
+To open the database:
+
+From the shell:
+
+```bash
+psql matcha_db
+```
+
+With an explicit user (enter the password when prompted):
+
+```bash
+psql -U user -d matcha_db
+```
+
+Using the same URL as in `.env`:
+
+```bash
+psql "postgresql://user:password@localhost/matcha_db"
+```
+
+If you are already in `psql` (connected to `postgres` or another database), switch to `matcha_db`:
+
+```sql
+\c matcha_db
+```
+
+Or:
+
+```sql
+\connect matcha_db
+```
+
+Useful commands inside `psql`: list tables `\dt`, quit `\q`.
+
 6. Run migrations:
 
 ```bash

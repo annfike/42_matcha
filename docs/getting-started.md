@@ -159,11 +159,7 @@ MAX_CONTENT_LENGTH=5242880
 
 ### OAuth (optional)
 
-Leave empty to disable social login, or fill in after creating apps:
-
-- Google: [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-- GitHub: [GitHub Developer Settings](https://github.com/settings/developers)
-- 42 Intra: [42 OAuth applications](https://profile.intra.42.fr/oauth/applications)
+Leave empty to disable social login. Step-by-step provider setup (callback URLs, `.env`, troubleshooting): **[oauth-setup.md](oauth-setup.md)**.
 
 ---
 

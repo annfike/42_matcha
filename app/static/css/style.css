@@ -59,6 +59,22 @@ body {
     background: rgba(255, 255, 255, 0.1);
 }
 
+.nav-user {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+}
+
+.nav-username {
+    color: #ecf0f1;
+    font-weight: 600;
+}
+
+.nav-username:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .site-main {
     flex: 1;
     max-width: 1200px;

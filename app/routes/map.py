@@ -21,7 +21,7 @@ def users_json():
         "FROM users u "
         "LEFT JOIN user_images ui ON u.profile_picture_id = ui.id "
         "WHERE u.email_verified = true AND u.latitude IS NOT NULL AND u.longitude IS NOT NULL "
-        "AND (u.location_enabled = true OR btrim(COALESCE(u.location_place, '')) <> '') "
+        "AND (u.location_enabled = 1 OR trim(COALESCE(u.location_place, '')) <> '') "
         "AND u.id != %s "
         "AND u.id NOT IN (SELECT blocked_id FROM blocks WHERE blocker_id = %s) "
         "AND u.id NOT IN (SELECT blocker_id FROM blocks WHERE blocked_id = %s) "

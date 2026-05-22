@@ -8,6 +8,8 @@ from app.utils.tags import canonical_tag_name, split_tags_input
 def calculate_age(birth_date):
     if not birth_date:
         return None
+    if isinstance(birth_date, str):
+        birth_date = date.fromisoformat(birth_date[:10])
     today = date.today()
     return today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
 
@@ -100,7 +102,7 @@ def get_matching_candidates(current_user, filters=None):
 
     # Proximity matching requires coordinates; without GPS, subject requires declared city/area.
     where.append("u.latitude IS NOT NULL AND u.longitude IS NOT NULL")
-    where.append("(u.location_enabled = true OR btrim(COALESCE(u.location_place, '')) <> '')")
+    where.append("(u.location_enabled = 1 OR trim(COALESCE(u.location_place, '')) <> '')")
 
     sql = (
         "SELECT u.*, ui.filename AS pp_filename, ui.id AS pp_id "

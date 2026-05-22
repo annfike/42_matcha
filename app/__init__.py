@@ -144,15 +144,9 @@ def create_app(config_class=None):
 
     @app.cli.command("init-db")
     def init_db_command():
-        from app.database import get_db, commit
-        schema_path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "..", "migrations", "schema.sql"
-        )
-        with open(schema_path) as f:
-            sql = f.read()
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute(sql)
+        from app.database import get_db, commit, apply_schema
+
+        apply_schema(get_db())
         commit()
         click.echo("Database tables created.")
 

@@ -1,6 +1,6 @@
 # Matcha
 
-A dating website built with Flask and PostgreSQL. Users register, verify email, complete their profile, browse suggestions, like profiles, chat in real time, and receive notifications.
+A dating website built with Flask and SQLite. Users register, verify email, complete their profile, browse suggestions, like profiles, chat in real time, and receive notifications.
 
 **Full setup from scratch:** [docs/getting-started.md](docs/getting-started.md)  
 **OAuth (Google, GitHub, 42 Intra):** [docs/oauth-setup.md](docs/oauth-setup.md)
@@ -10,7 +10,7 @@ A dating website built with Flask and PostgreSQL. Users register, verify email, 
 | Layer | Technology |
 |-------|------------|
 | Backend | Flask (Python) |
-| Database | PostgreSQL (`psycopg2`, parameterized SQL) |
+| Database | SQLite (`sqlite3`, parameterized SQL) |
 | Frontend | HTML, CSS, JavaScript |
 | Real-time | Flask-SocketIO (chat, notifications, call signaling) |
 | Email | Flask-Mail |
@@ -22,8 +22,7 @@ A dating website built with Flask and PostgreSQL. Users register, verify email, 
 
 ## Prerequisites
 
-- Python 3.8+
-- PostgreSQL
+- Python 3.8+ (includes SQLite)
 - SMTP (recommended) for email verification and password reset (e.g. Gmail with an app password)
 
 ## Quick start
@@ -33,7 +32,6 @@ git clone <repository-url> matcha && cd matcha
 python3 -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env                                # edit SECRET_KEY, DATABASE_URL, MAIL_*
-createdb matcha_db
 export FLASK_APP=run.py
 flask init-db
 mkdir -p app/uploads
@@ -49,7 +47,7 @@ Open **http://127.0.0.1:5001** (default port when using `run.py`). Step-by-step 
 | `FLASK_APP` | Entry point | `run.py` |
 | `FLASK_ENV` | Environment | `development` or `production` |
 | `SECRET_KEY` | Session/CSRF secret | Strong random string |
-| `DATABASE_URL` | PostgreSQL connection | `postgresql://user:password@localhost/matcha_db` |
+| `DATABASE_URL` | SQLite database file | `sqlite:///matcha.db` |
 | `MAIL_SERVER` | SMTP host | `smtp.gmail.com` |
 | `MAIL_PORT` | SMTP port | `587` |
 | `MAIL_USE_TLS` | Use TLS | `True` |
@@ -99,7 +97,7 @@ matcha/
 ├── app/
 │   ├── __init__.py           # Flask app factory, blueprints, init-db
 │   ├── config.py
-│   ├── database.py           # PostgreSQL connection pool, query helpers
+│   ├── database.py           # SQLite connection, query helpers
 │   ├── models.py             # User model (Flask-Login), make_user()
 │   ├── routes/
 │   │   ├── auth.py           # Register, login, verify, reset password
@@ -138,10 +136,9 @@ Creates 500+ test profiles (Swiss cities, tags, likes, views). Password for all 
 
 ## Testing
 
-Uses PostgreSQL database **`matcha_test`** (separate from `matcha_db`). See [tests/TESTING.md](tests/TESTING.md).
+Uses a separate SQLite file **`matcha_test.db`** (derived from `DATABASE_URL`). See [tests/TESTING.md](tests/TESTING.md).
 
 ```bash
-psql -U postgres -h localhost -c "CREATE DATABASE matcha_test;"
 pytest
 ```
 
@@ -165,7 +162,7 @@ pytest
 
 ## Security
 
-- **SQL injection:** parameterized queries (`psycopg2`) — no string-concatenated SQL
+- **SQL injection:** parameterized queries (`sqlite3`) — no string-concatenated SQL
 - **XSS:** Jinja2 auto-escaping, input sanitization
 - **CSRF:** Flask-WTF on POST forms
 - **Passwords:** bcrypt, strength rules (length, mixed case, numbers)

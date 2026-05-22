@@ -5,13 +5,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app import create_app, bcrypt
-from app.database import get_db, commit, execute, execute_returning, rollback, query_one
+from app.database import get_db, commit, execute, execute_returning, rollback, query_one, reset_schema
 
 
 def _test_db_url():
-    base = os.environ.get("DATABASE_URL", "postgresql://localhost/matcha_db")
-    parts = base.rsplit("/", 1)
-    return parts[0] + "/matcha_test"
+    base = os.environ.get("DATABASE_URL", "sqlite:///matcha.db")
+    if base.endswith("matcha.db"):
+        return base.replace("matcha.db", "matcha_test.db")
+    if base.endswith(".db"):
+        return base.rsplit(".", 1)[0] + "_test.db"
+    return "sqlite:///matcha_test.db"
 
 
 class TestConfig:
@@ -28,30 +31,14 @@ class TestConfig:
 def app():
     application = create_app(TestConfig)
     with application.app_context():
-        conn = get_db()
-        schema_path = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "migrations", "schema.sql",
-        )
-        with open(schema_path) as f:
-            sql = f.read()
-        with conn.cursor() as cur:
-            cur.execute(sql)
+        reset_schema(get_db())
         commit()
         yield application
         try:
             rollback()
         except Exception:
             pass
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute(
-                "DROP TABLE IF EXISTS events, notifications, messages, reports, "
-                "blocks, profile_views, likes, user_tags, tags CASCADE"
-            )
-            cur.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS fk_users_profile_picture")
-            cur.execute("DROP TABLE IF EXISTS user_images CASCADE")
-            cur.execute("DROP TABLE IF EXISTS users CASCADE")
+        reset_schema(get_db())
         commit()
 
 
@@ -73,12 +60,12 @@ def user(app):
             "INSERT INTO users (username, email, password_hash, first_name, last_name, birth_date, "
             "latitude, longitude, location_enabled, "
             "email_verified, gender, sexual_preference, biography) "
-            "VALUES (%s, %s, %s, %s, %s, '1995-06-15', 46.2044, 6.1432, true, "
-            "true, 'male', 'heterosexual', 'Test biography') RETURNING id",
+            "VALUES (%s, %s, %s, %s, %s, '1995-06-15', 46.2044, 6.1432, 1, "
+            "1, 'male', 'heterosexual', 'Test biography') RETURNING id",
             ("testuser", "test@example.com", password_hash, "Test", "User"),
         )
         img = execute_returning(
-            "INSERT INTO user_images (user_id, filename, is_profile_picture) VALUES (%s, %s, true) RETURNING id",
+            "INSERT INTO user_images (user_id, filename, is_profile_picture) VALUES (%s, %s, 1) RETURNING id",
             (row["id"], "test.jpg"),
         )
         execute(
@@ -104,12 +91,12 @@ def user2(app):
             "INSERT INTO users (username, email, password_hash, first_name, last_name, birth_date, "
             "latitude, longitude, location_enabled, "
             "email_verified, gender, sexual_preference, biography) "
-            "VALUES (%s, %s, %s, %s, %s, '1993-08-20', 46.5197, 6.6323, true, "
-            "true, 'female', 'bisexual', 'Test2 biography') RETURNING id",
+            "VALUES (%s, %s, %s, %s, %s, '1993-08-20', 46.5197, 6.6323, 1, "
+            "1, 'female', 'bisexual', 'Test2 biography') RETURNING id",
             ("testuser2", "test2@example.com", password_hash, "Test2", "User2"),
         )
         img = execute_returning(
-            "INSERT INTO user_images (user_id, filename, is_profile_picture) VALUES (%s, %s, true) RETURNING id",
+            "INSERT INTO user_images (user_id, filename, is_profile_picture) VALUES (%s, %s, 1) RETURNING id",
             (row["id"], "test2.jpg"),
         )
         execute(

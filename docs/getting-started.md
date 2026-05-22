@@ -7,14 +7,14 @@ This guide walks you through preparing your machine, configuring the project, an
 | Requirement | Version / notes |
 |-------------|-----------------|
 | **Python** | 3.8 or newer |
-| **PostgreSQL** | Running server with permission to create databases |
+| **SQLite** | Included with Python (no separate server) |
 | **Git** | To clone the repository |
 | **SMTP** (optional) | For email verification and password reset (e.g. Gmail with an app password) |
 
 Optional later:
 
 - OAuth credentials (Google, GitHub, 42 Intra) for social login
-- Test database `matcha_test` if you want to run the pytest suite
+- No extra setup for tests — pytest uses `matcha_test.db` automatically
 
 ---
 
@@ -30,30 +30,9 @@ python3 --version
 
 If Python is missing or too old, install it from [python.org](https://www.python.org/downloads/) or your OS package manager.
 
-### PostgreSQL
+### SQLite
 
-**macOS (Homebrew):**
-
-```bash
-brew install postgresql@16
-brew services start postgresql@16
-```
-
-**Debian / Ubuntu:**
-
-```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-sudo systemctl start postgresql
-```
-
-**Windows:** Install from [postgresql.org](https://www.postgresql.org/download/windows/) and ensure the service is running.
-
-Confirm `psql` works:
-
-```bash
-psql --version
-```
+SQLite is bundled with Python. The application stores data in a single file (default: `matcha.db` in the project root). No `psql`, `createdb`, or system service is required.
 
 ---
 
@@ -120,17 +99,17 @@ Open `.env` in your editor and set at least:
 | Variable | Purpose |
 |----------|---------|
 | `SECRET_KEY` | Session and CSRF secret — use a long random string in production |
-| `DATABASE_URL` | PostgreSQL connection string |
+| `DATABASE_URL` | SQLite database file path |
 | `FLASK_APP` | Must be `run.py` (already in `.env.example`) |
 | `FLASK_ENV` | Use `development` locally |
 
 **Example `DATABASE_URL`:**
 
 ```env
-DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/matcha_db
+DATABASE_URL=sqlite:///matcha.db
 ```
 
-Replace `postgres`, `yourpassword`, host, and port with your PostgreSQL user and settings.
+The file is created in the project root when you run `flask init-db`. Use an absolute path if you prefer another location, e.g. `sqlite:////home/user/data/matcha.db`.
 
 ### Email (recommended for real use)
 
@@ -163,38 +142,7 @@ Leave empty to disable social login. Step-by-step provider setup (callback URLs,
 
 ---
 
-## 5. PostgreSQL database
-
-### Create the application database
-
-**Using `createdb`:**
-
-```bash
-createdb matcha_db
-```
-
-**Or in `psql`:**
-
-```bash
-psql -U postgres
-```
-
-```sql
-CREATE DATABASE matcha_db;
-\q
-```
-
-### Connect to verify
-
-```bash
-psql "postgresql://postgres:yourpassword@localhost/matcha_db"
-```
-
-Inside `psql`: `\dt` lists tables (empty until migrations), `\q` quits.
-
----
-
-## 6. Initialize the schema
+## 5. Initialize the schema
 
 The project applies `migrations/schema.sql` via a custom Flask CLI command (not Flask-Migrate).
 
@@ -218,7 +166,7 @@ Expected output:
 Database tables created.
 ```
 
-If you see connection errors, check that PostgreSQL is running and that `DATABASE_URL` in `.env` matches your user, password, host, and database name.
+After success, `matcha.db` appears in the project root (or at the path in `DATABASE_URL`).
 
 ### Upload directory
 
@@ -230,7 +178,7 @@ mkdir -p app/uploads
 
 ---
 
-## 7. Run the application
+## 6. Run the application
 
 ### Recommended: `run.py` (SocketIO + WebSockets)
 
@@ -257,7 +205,7 @@ This typically serves on `http://127.0.0.1:5000` and may not support WebSockets 
 
 ---
 
-## 8. First use in the browser
+## 7. First use in the browser
 
 1. Open `http://127.0.0.1:5001` (or the port you set).
 2. **Register** a new account at `/auth/register`.
@@ -268,7 +216,7 @@ This typically serves on `http://127.0.0.1:5000` and may not support WebSockets 
 
 ---
 
-## 9. Optional: seed test data
+## 8. Optional: seed test data
 
 To populate the database with 500+ fake profiles (Swiss cities, tags, likes):
 
@@ -282,14 +230,11 @@ Run this only on a development database, not production.
 
 ---
 
-## 10. Optional: run tests
+## 9. Optional: run tests
 
-Tests use a separate database `matcha_test`. See [tests/TESTING.md](../tests/TESTING.md) for full details.
-
-Quick setup:
+Tests use a separate file `matcha_test.db`. See [tests/TESTING.md](../tests/TESTING.md) for full details.
 
 ```bash
-psql -U postgres -h localhost -c "CREATE DATABASE matcha_test;"
 pytest
 ```
 
@@ -302,7 +247,7 @@ pytest
 | `FLASK_APP` | Yes | `run.py` |
 | `FLASK_ENV` | No | `development` or `production` |
 | `SECRET_KEY` | Yes (prod) | Flask secret key |
-| `DATABASE_URL` | Yes | PostgreSQL URL |
+| `DATABASE_URL` | Yes | SQLite URL (`sqlite:///path/to/file.db`) |
 | `MAIL_*` | For email | SMTP settings |
 | `UPLOAD_FOLDER` | No | Image storage path |
 | `MAX_CONTENT_LENGTH` | No | Max upload size in bytes (default 5MB) |
@@ -315,11 +260,10 @@ pytest
 
 ## Troubleshooting
 
-### `flask init-db` — connection refused or authentication failed
+### `flask init-db` — unable to open database file
 
-- Confirm PostgreSQL is running: `brew services list` (macOS) or `sudo systemctl status postgresql` (Linux).
-- Match `DATABASE_URL` to a real role and password: `psql -U <user> -d postgres -c '\du'`.
-- Ensure `matcha_db` exists: `psql -l | grep matcha`.
+- Check that the directory in `DATABASE_URL` exists and is writable.
+- On 42 workstations, keep the default `sqlite:///matcha.db` in the project folder.
 
 ### `flask: command not found` or wrong Flask
 
@@ -361,7 +305,6 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 # edit .env
-createdb matcha_db
 export FLASK_APP=run.py
 flask init-db
 mkdir -p app/uploads

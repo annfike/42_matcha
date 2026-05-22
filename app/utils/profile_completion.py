@@ -14,8 +14,8 @@ def get_profile_completion_status(user_id):
     row = query_one(
         "SELECT u.gender, u.sexual_preference, u.biography, u.birth_date, u.profile_picture_id, "
         "u.latitude, u.longitude, u.location_enabled, u.location_place, "
-        "(SELECT COUNT(*)::int FROM user_tags ut WHERE ut.user_id = u.id) AS tag_count, "
-        "(SELECT COUNT(*)::int FROM user_images ui WHERE ui.user_id = u.id) AS img_count "
+        "(SELECT COUNT(*) FROM user_tags ut WHERE ut.user_id = u.id) AS tag_count, "
+        "(SELECT COUNT(*) FROM user_images ui WHERE ui.user_id = u.id) AS img_count "
         "FROM users u WHERE u.id = %s",
         (user_id,),
     )

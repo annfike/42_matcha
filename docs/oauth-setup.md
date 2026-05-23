@@ -1,8 +1,128 @@
-# OAuth setup (Google, GitHub, 42 Intra)
+# Authentication setup (email/password and OAuth)
 
-Matcha supports optional social login via [Authlib](https://docs.authlib.org/). Each provider is enabled independently by setting client credentials in `.env`. Buttons appear on **Login** and **Register** only when the corresponding `*_CLIENT_ID` is set.
+Matcha supports two sign-in paths:
 
-## How it works in this app
+1. **Email and password** — always available; requires **SMTP** for verification and password-reset links before the first login.
+2. **OAuth** (optional) — Google, GitHub, or 42 Intra when client credentials are set in `.env`.
+
+Implementation: `app/routes/auth.py` (local accounts), `app/routes/oauth.py` (social login).
+
+---
+
+## Email and password
+
+Use this flow when you register with the form on **Register** (`/auth/register`) instead of **Continue with Google / GitHub / 42 Intra**. No OAuth app registration is required — only `.env` mail settings (or a local workaround below).
+
+### Routes
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/auth/register` | GET, POST | Create account |
+| `/auth/verify/<token>` | GET | Confirm email after registration |
+| `/auth/resend-verification` | GET, POST | Request a new verification link |
+| `/auth/login` | GET, POST | Sign in with **username** + password |
+| `/auth/logout` | GET | End session |
+| `/auth/reset-password` | GET, POST | Request password-reset email |
+| `/auth/reset-password/<token>` | GET, POST | Set a new password from email link |
+
+### Registration (`POST /auth/register`)
+
+1. Form fields: email, username, first_name, last_name, password, password_confirm.
+2. Validation: email/username/name rules, passwords match, `is_password_strong` (min 8 chars, upper, lower, digit).
+3. Uniqueness checks on email and username.
+4. `verification_token = secrets.token_urlsafe(32)`; password stored as **bcrypt** hash.
+5. `INSERT` into `users` with `email_verified = false` (column default).
+6. `commit()` — account exists in SQLite.
+7. `send_verification_email()` via SMTP (see [email-smtp.md](email-smtp.md)).
+8. Redirect to **Login** — **no session** is created yet.
+
+If SMTP fails, registration is **not** rolled back; the user row remains unverified. Configure `MAIL_*` and use **Resend verification**, or verify manually during local testing (see below).
+
+### Email verification (`GET /auth/verify/<token>`)
+
+This is the link in the registration email (`auth.verify_email`).
+
+| Step | Action |
+|------|--------|
+| 1 | `SELECT id FROM users WHERE verification_token = ?` |
+| 2 | If no row → flash *Invalid or expired verification link* → redirect to login |
+| 3 | `UPDATE users SET email_verified = true, verification_token = NULL` |
+| 4 | `commit()` → flash success → redirect to login |
+
+The verification token in the email body is documented as **24 hours** in the template text; expiry is not enforced in SQL — only the current token value matters (a new resend replaces the old token).
+
+### Login (`POST /auth/login`)
+
+1. Lookup by **username** (not email), with profile picture join.
+2. `bcrypt.check_password_hash` — on failure: *Invalid username or password*.
+3. **`email_verified` must be true** — otherwise login is blocked with a message pointing to resend verification.
+4. `login_user()` → Flask-Login session cookie.
+5. `UPDATE is_online = true`, `last_seen = now` → `commit()`.
+6. Redirect to `?next=` or `/browse/suggestions`.
+
+OAuth-only accounts use placeholder password hashes (`oauth_google`, etc.) and are meant to sign in via the provider, not this form.
+
+### Password reset
+
+**Request** (`POST /auth/reset-password`):
+
+1. Lookup by email (same success flash whether or not the account exists — no email enumeration).
+2. `reset_token` + `reset_token_expiry` (default **1 hour**, `RESET_TOKEN_EXPIRY_HOURS` in `app/config.py`).
+3. Email with link to `/auth/reset-password/<token>`.
+
+**Confirm** (`POST /auth/reset-password/<token>`):
+
+1. Token must exist and `reset_token_expiry >= now` (UTC).
+2. New password must pass `is_password_strong`.
+3. Update `password_hash`, clear reset fields → redirect to login.
+
+### Resend verification (`POST /auth/resend-verification`)
+
+For accounts with `email_verified = false`: new `verification_token`, `UPDATE`, email sent. Response is always generic: *If an unverified account exists with that email, a verification link has been sent.*
+
+### Configure SMTP (required for real email/password use)
+
+In `.env` (see [.env.example](../.env.example)):
+
+```env
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+```
+
+Full provider notes, Gmail app passwords, and Mailhog: [email-smtp.md](email-smtp.md).
+
+Restart the app after changing `.env`.
+
+### Local testing without SMTP
+
+| Approach | When to use |
+|----------|-------------|
+| [email-smtp.md](email-smtp.md) — Mailhog / Mailpit | Catch messages on localhost |
+| `/auth/resend-verification` | After fixing `MAIL_*` for an existing unverified user |
+| SQLite: `UPDATE users SET email_verified = 1 WHERE email = '...'` | Quick manual unlock on your machine only |
+| `SHOW_VERIFICATION_LINK` in `app/config.py` | Commented demo mode: flash the verify URL on screen instead of sending mail (uncomment in `config.py` and the matching block in `auth.py`) |
+
+### Email/password vs OAuth
+
+| | Email/password | OAuth |
+|---|----------------|-------|
+| Setup | `MAIL_*` in `.env` | Provider client ID/secret |
+| `email_verified` after sign-up | `false` until link clicked | `true` immediately |
+| Login identifier | Username + password | Provider button |
+| Session | Flask-Login cookie | Same cookie after OAuth callback |
+
+More on sessions and bcrypt: [authentication.md](authentication.md).
+
+---
+
+## OAuth (Google, GitHub, 42 Intra)
+
+Optional social login via [Authlib](https://docs.authlib.org/). Each provider is enabled independently by setting client credentials in `.env`. Buttons appear on **Login** and **Register** only when the corresponding `*_CLIENT_ID` is set.
+
+### How OAuth works in this app
 
 | Route | Purpose |
 |-------|---------|
@@ -22,9 +142,7 @@ Matcha supports optional social login via [Authlib](https://docs.authlib.org/). 
 
 Implementation: `app/routes/oauth.py`.
 
----
-
-## Before you start
+### Before you start (OAuth providers)
 
 1. Complete basic setup ([getting-started.md](getting-started.md)): app runs locally, `.env` exists.
 2. Decide your **base URL** — the exact origin you use in the browser, including port.
@@ -210,5 +328,7 @@ http://127.0.0.1:5001/oauth/intra42/callback
 
 ## Related docs
 
+- [email-smtp.md](email-smtp.md) — verification and reset emails (email/password accounts)
+- [authentication.md](authentication.md) — Flask-Login, bcrypt, sessions
 - [getting-started.md](getting-started.md) — install and run from scratch
 - [README.md](../README.md) — project overview

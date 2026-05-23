@@ -55,7 +55,6 @@ matcha/
 
 | Document | Topic |
 |----------|--------|
-| [architecture-ru.md](architecture-ru.md) | Full architecture (Russian, more implementation detail) |
 | [getting-started.md](getting-started.md) | Install, configure, first run |
 | [authentication.md](authentication.md) | Accounts, sessions, passwords |
 | [oauth-setup.md](oauth-setup.md) | Social login providers |

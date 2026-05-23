@@ -394,7 +394,3 @@ Automated tests use pytest with a separate test database file so production data
 - **Email** must be configured for real verification in production; otherwise users stay unverified.
 - **HTTPS** is required for camera access on non-localhost deployments.
 - **Nominatim** (geocoding) should be used at low volume per OpenStreetMap policy.
-
----
-
-*This document describes how Matcha is designed to behave. For implementation specifics of one feature, use the topic guides linked at the top.*

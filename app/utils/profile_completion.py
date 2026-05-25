@@ -1,7 +1,7 @@
 """Matcha subject IV.2: profile must include birth date, gender, orientation, bio, tags, photos + main picture.
 
-Location for matching (subject): coordinates are required for proximity; if device GPS is not used,
-the user must declare city or neighborhood (location_place).
+Location: GPS with explicit consent, or manual city/neighborhood entry.
+No automatic IP-based tracking.
 """
 
 from app.database import query_one

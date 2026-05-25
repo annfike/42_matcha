@@ -131,7 +131,7 @@
         <div class="form-group">
             <label for="location_place">City or neighborhood</label>
             <input type="text" id="location_place" maxlength="200" value="{{ user.location_place or '' }}" placeholder="e.g. Paris, Kreuzberg, Geneva, Switzerland">
-            <p class="hint">Use <strong>Detect my location</strong> to set coordinates and we fill this when possible. If you opt out, type your city or area.</p>
+            <p class="hint">Use <strong>Detect my location</strong> for GPS positioning (requires your consent). If you opt out, type your city or neighborhood and click <strong>Save location</strong>.</p>
         </div>
         <div class="location-actions">
             <button type="button" id="btn-geolocate" class="btn">Detect my location</button>
@@ -245,33 +245,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function fallbackIpLocation() {
-        status.textContent = 'Detecting approximate location...';
-        fetch('https://ipapi.co/json/')
-            .then(function(r) { return r.json(); })
-            .then(function(data) {
-                if (data.latitude && data.longitude) {
-                    updateLocationGps(data.latitude, data.longitude);
-                    status.textContent = 'Approximate location detected via IP.';
-                } else {
-                    status.textContent = 'Could not detect automatically. Enter your city and use «Use this place (no GPS)».';
-                }
-            })
-            .catch(function() {
-                status.textContent = 'Could not detect automatically. Enter your city and use «Use this place (no GPS)».';
-            });
-    }
-
     btnGeo.addEventListener('click', function() {
         if (!navigator.geolocation) {
-            fallbackIpLocation();
+            status.textContent = 'GPS is not available in your browser. Please enter your city or neighborhood below and click "Save location".';
+            if (placeInput) placeInput.focus();
             return;
         }
-        status.textContent = 'Detecting location...';
+        status.textContent = 'Requesting GPS permission...';
         navigator.geolocation.getCurrentPosition(function(pos) {
             updateLocationGps(pos.coords.latitude, pos.coords.longitude);
         }, function(err) {
-            fallbackIpLocation();
+            status.textContent = 'GPS access declined. Please enter your city or neighborhood below and click "Save location".';
+            if (placeInput) placeInput.focus();
         });
     });
 
@@ -280,15 +265,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (PROFILE_NEEDS_LOCATION) {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(pos) {
-                updateLocationGps(pos.coords.latitude, pos.coords.longitude);
-            }, function(err) {
-                fallbackIpLocation();
-            });
-        } else {
-            fallbackIpLocation();
-        }
+        status.textContent = 'Location is required. Use "Detect my location" for GPS, or type your city below and click "Save location".';
     }
 
     var dropzone = document.getElementById('dropzone');

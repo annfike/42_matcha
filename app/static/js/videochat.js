@@ -90,6 +90,10 @@
         }
     }
 
+    function markConnected() {
+        updateStatus('Connected', 'connected');
+    }
+
     function createPeerConnection() {
         if (peerConnection) {
             return peerConnection;
@@ -103,8 +107,8 @@
             if (event.streams && event.streams[0]) {
                 remoteVideo.srcObject = event.streams[0];
                 remotePlaceholder.style.display = 'none';
-                updateStatus('Connected', 'connected');
             }
+            markConnected();
         };
         peerConnection.onicecandidate = function(event) {
             if (event.candidate) {
@@ -113,7 +117,21 @@
         };
         peerConnection.onconnectionstatechange = function() {
             if (!peerConnection) return;
-            if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+            var state = peerConnection.connectionState;
+            if (state === 'connected') {
+                markConnected();
+            } else if (state === 'connecting') {
+                updateStatus('Connecting...', '');
+            } else if (state === 'disconnected' || state === 'failed') {
+                updateStatus('Connection lost', 'error');
+            }
+        };
+        peerConnection.oniceconnectionstatechange = function() {
+            if (!peerConnection) return;
+            var ice = peerConnection.iceConnectionState;
+            if (ice === 'connected' || ice === 'completed') {
+                markConnected();
+            } else if (ice === 'failed' || ice === 'disconnected') {
                 updateStatus('Connection lost', 'error');
             }
         };
@@ -133,7 +151,7 @@
             }
             socket.emit('join_call', { room: roomId, user_id: myUserId });
             if (isIncoming) {
-                updateStatus('Waiting for ' + otherUserName + ' to connect...');
+                updateStatus('Connecting...', '');
             } else {
                 socket.emit('call_request', {
                     target_user_id: otherUserId,
@@ -153,7 +171,7 @@
     socket.on('user_joined', async function() {
         if (isIncoming || !mediaReady) return;
         try {
-            updateStatus('User joined, connecting...');
+            updateStatus('Connecting...', '');
             makingOffer = true;
             createPeerConnection();
             var offer = await peerConnection.createOffer();
@@ -187,6 +205,7 @@
         if (!peerConnection || !data || !data.answer) return;
         try {
             await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+            updateStatus('Connecting...', '');
         } catch (err) {
             console.error('Remote description error:', err);
         }

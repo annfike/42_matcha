@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Edit Profile - Matcha{% endblock %}
 {% block content %}
-<div class="profile-edit">
+<div class="profile-edit" data-needs-location="{{ (user.latitude is none or user.longitude is none) | tojson }}">
     <h1>Edit Profile</h1>
 
     <section class="profile-section">
@@ -168,8 +168,9 @@
 
 {% block scripts %}
 <script>
-var PROFILE_NEEDS_LOCATION = {{ (user.latitude is none or user.longitude is none) | tojson }};
 document.addEventListener('DOMContentLoaded', function() {
+    var profileRoot = document.querySelector('.profile-edit');
+    var PROFILE_NEEDS_LOCATION = profileRoot && profileRoot.dataset.needsLocation === 'true';
     var btnGeo = document.getElementById('btn-geolocate');
     var btnSaveCity = document.getElementById('btn-save-city');
     var status = document.getElementById('location-status');

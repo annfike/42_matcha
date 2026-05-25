@@ -56,6 +56,7 @@ matcha/
 | Document | Topic |
 |----------|--------|
 | [getting-started.md](getting-started.md) | Install, configure, first run |
+| [database-sqlite.md](database-sqlite.md) | Open `matcha.db`, CLI and GUI, common queries |
 | [authentication.md](authentication.md) | Accounts, sessions, passwords |
 | [oauth-setup.md](oauth-setup.md) | Social login providers |
 | [email-smtp.md](email-smtp.md) | Verification and reset emails |

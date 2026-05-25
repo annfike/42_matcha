@@ -90,6 +90,8 @@ flask init-db
 
 This is a custom Flask CLI command, not Flask-Migrate.
 
+**Open and query the database:** [docs/database-sqlite.md](docs/database-sqlite.md) (`sqlite3 matcha.db`, GUI tools, seed checks).
+
 ## Project structure
 
 ```

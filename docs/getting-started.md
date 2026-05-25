@@ -32,7 +32,7 @@ If Python is missing or too old, install it from [python.org](https://www.python
 
 ### SQLite
 
-SQLite is bundled with Python. The application stores data in a single file (default: `matcha.db` in the project root). No `psql`, `createdb`, or system service is required.
+SQLite is bundled with Python. The application stores data in a single file (default: `matcha.db` in the project root). No `psql`, `createdb`, or system service is required. To browse or query the database: [database-sqlite.md](database-sqlite.md).
 
 ---
 

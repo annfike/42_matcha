@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Edit Profile - Matcha{% endblock %}
 {% block content %}
-<div class="profile-edit" data-needs-location="{{ (user.latitude is none or user.longitude is none) | tojson }}">
+<div class="profile-edit" data-needs-location="{{ (user.latitude is none or user.longitude is none) | tojson }}" data-image-count="{{ images|length }}" data-max-images="5">
     <h1>Edit Profile</h1>
 
     <section class="profile-section">
@@ -36,6 +36,7 @@
             <p>Drag & drop images here or click to upload</p>
             <input type="file" id="file-input" accept="image/*" multiple style="display:none;">
         </div>
+        <p id="upload-status" class="hint" aria-live="polite"></p>
         {% endif %}
         <p class="hint">Upload at least one photo and set a main picture (first upload is main by default). Up to 5 images; drag to reorder.</p>
     </section>
@@ -271,6 +272,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var dropzone = document.getElementById('dropzone');
     var fileInput = document.getElementById('file-input');
+    var uploadStatus = document.getElementById('upload-status');
+    var maxImages = profileRoot ? parseInt(profileRoot.dataset.maxImages, 10) || 5 : 5;
+    var imageCount = profileRoot ? parseInt(profileRoot.dataset.imageCount, 10) || 0 : 0;
+    var uploadInProgress = false;
 
     if (dropzone) {
         dropzone.addEventListener('click', function() { fileInput.click(); });
@@ -288,17 +293,46 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         fileInput.addEventListener('change', function() {
             handleFiles(fileInput.files);
+            fileInput.value = '';
         });
     }
 
+    function setUploadStatus(msg) {
+        if (uploadStatus) uploadStatus.textContent = msg || '';
+    }
+
     function handleFiles(files) {
-        Array.from(files).forEach(function(file) {
-            if (!file.type.startsWith('image/')) return;
+        if (uploadInProgress) return;
+        var remaining = maxImages - imageCount;
+        if (remaining <= 0) {
+            setUploadStatus('Maximum ' + maxImages + ' images allowed.');
+            return;
+        }
+        var all = Array.from(files);
+        var images = all.filter(function(file) { return file.type.startsWith('image/'); });
+        if (images.length === 0) {
+            setUploadStatus('Only image files are allowed (png, jpg, gif, webp).');
+            return;
+        }
+        if (all.length > images.length) {
+            setUploadStatus('Skipped non-image files. Uploading images only.');
+        }
+        if (images.length > remaining) {
+            images = images.slice(0, remaining);
+            setUploadStatus(
+                'Only ' + remaining + ' more image(s) allowed. Extra files were not uploaded.'
+            );
+        }
+        uploadInProgress = true;
+        if (dropzone) dropzone.classList.add('uploading');
+
+        function uploadOne(index) {
+            if (index >= images.length) {
+                window.location.reload();
+                return;
+            }
             var formData = new FormData();
-            formData.append('image', file);
-            // Do not let fetch auto-follow redirects: the server consumes flash messages when
-            // rendering the redirect target HTML for the hidden follow-up GET. Then reload()
-            // loads the page again with no flashes. Use full navigation to the Location URL once.
+            formData.append('image', images[index]);
             fetch('{{ url_for("profile.upload_image") }}', {
                 method: 'POST',
                 headers: { 'X-CSRFToken': csrfToken },
@@ -312,11 +346,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                 }
-                window.location.reload();
+                imageCount += 1;
+                uploadOne(index + 1);
             }).catch(function() {
                 window.location.reload();
             });
-        });
+        }
+        uploadOne(0);
     }
 
     var sortable = document.getElementById('images-sortable');

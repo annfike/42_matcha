@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 from types import SimpleNamespace
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
 from flask_login import login_required, current_user
-from app.database import query_one, query_all, execute, execute_returning, commit
+from app.database import query_one, query_all, execute, execute_returning, commit, rollback, get_db
 from app.models import make_user
 from app.utils.security import sanitize_string
 from app.utils.images import save_image, delete_image_file
@@ -127,28 +127,50 @@ def edit():
 @profile_bp.route("/upload-image", methods=["POST"])
 @login_required
 def upload_image():
-    row = query_one(
-        "SELECT COUNT(*) AS cnt FROM user_images WHERE user_id = %s", (current_user.id,)
-    )
-    count = row["cnt"]
-    if count >= MAX_IMAGES:
-        flash(f"Maximum {MAX_IMAGES} images allowed.", "error")
-        return redirect(url_for("profile.edit"))
-    file = request.files.get("image")
-    upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
-    filename, err = save_image(file, upload_folder)
-    if err:
-        flash(err, "error")
-        return redirect(url_for("profile.edit"))
-    is_first = count == 0
-    img = execute_returning(
-        "INSERT INTO user_images (user_id, filename, is_profile_picture, upload_order) "
-        "VALUES (%s, %s, %s, %s) RETURNING id",
-        (current_user.id, filename, is_first, count),
-    )
-    if is_first:
-        execute("UPDATE users SET profile_picture_id = %s WHERE id = %s", (img["id"], current_user.id))
-    commit()
+    conn = get_db()
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        row = query_one(
+            "SELECT COUNT(*) AS cnt FROM user_images WHERE user_id = %s",
+            (current_user.id,),
+        )
+        count = row["cnt"]
+        if count >= MAX_IMAGES:
+            rollback()
+            flash(f"Maximum {MAX_IMAGES} images allowed.", "error")
+            return redirect(url_for("profile.edit"))
+        file = request.files.get("image")
+        upload_folder = current_app.config.get("UPLOAD_FOLDER", "./app/uploads")
+        filename, err = save_image(file, upload_folder)
+        if err:
+            rollback()
+            flash(err, "error")
+            return redirect(url_for("profile.edit"))
+        row = query_one(
+            "SELECT COUNT(*) AS cnt FROM user_images WHERE user_id = %s",
+            (current_user.id,),
+        )
+        if row["cnt"] >= MAX_IMAGES:
+            rollback()
+            if filename:
+                delete_image_file(filename, upload_folder)
+            flash(f"Maximum {MAX_IMAGES} images allowed.", "error")
+            return redirect(url_for("profile.edit"))
+        is_first = count == 0
+        img = execute_returning(
+            "INSERT INTO user_images (user_id, filename, is_profile_picture, upload_order) "
+            "VALUES (%s, %s, %s, %s) RETURNING id",
+            (current_user.id, filename, is_first, count),
+        )
+        if is_first:
+            execute(
+                "UPDATE users SET profile_picture_id = %s WHERE id = %s",
+                (img["id"], current_user.id),
+            )
+        commit()
+    except Exception:
+        rollback()
+        raise
     flash("Image uploaded.", "success")
     return redirect(url_for("profile.edit"))
 

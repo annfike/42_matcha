@@ -25,6 +25,10 @@
         </div>
         <div class="video-wrapper local-video-wrapper">
             <video id="local-video" autoplay playsinline muted></video>
+            <div class="video-placeholder local-placeholder" id="local-placeholder" style="display:none;">
+                <div class="avatar-placeholder">{{ current_user.first_name[0] }}</div>
+                <p>No camera</p>
+            </div>
         </div>
     </div>
 
@@ -121,6 +125,21 @@
     display: block;
 }
 
+.local-video-wrapper {
+    background: #2c3e50;
+}
+
+.local-placeholder {
+    font-size: 0.75rem;
+}
+
+.local-placeholder .avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
 .video-placeholder {
     position: absolute;
     top: 0;
@@ -204,5 +223,5 @@
     }
 }
 </style>
-<script src="{{ url_for('static', filename='js/videochat.js') }}"></script>
+<script src="{{ url_for('static', filename='js/videochat.js') }}?v=3"></script>
 {% endblock %}

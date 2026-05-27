@@ -337,6 +337,10 @@ def main():
         create_profile_images_for_users()
         print("Seed data generation complete!")
 
+        print("Assigning real photos to seeded users (fallbacks may remain)...")
+        assign_real_photos_to_seeded_users()
+        print("Real photo assignment complete!")
+
 
 if __name__ == "__main__":
     main()

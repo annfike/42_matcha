@@ -2,7 +2,12 @@
 {% block title %}My Events - Matcha{% endblock %}
 {% block content %}
 <div class="events-page">
-    <h1>My Events</h1>
+    <div class="page-header">
+        <h1>My Events</h1>
+        <div class="page-actions">
+            <a href="#" class="btn btn-small" id="new-event-btn">Create New Event</a>
+        </div>
+    </div>
 
     <section class="events-section">
         <h2>Events I Created</h2>
@@ -45,10 +50,6 @@
         <p class="empty-message">No invitations yet.</p>
         {% endif %}
     </section>
-
-    <div class="events-actions">
-        <a href="#" class="btn" id="new-event-btn">Create New Event</a>
-    </div>
 
     <div id="match-selector" class="modal" style="display:none;">
         <div class="modal-content">

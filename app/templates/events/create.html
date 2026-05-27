@@ -2,7 +2,12 @@
 {% block title %}Create Event - Matcha{% endblock %}
 {% block content %}
 <div class="form-box">
-    <h1>Create Event</h1>
+    <div class="page-header">
+        <h1>Create Event</h1>
+        <div class="page-actions">
+            <a href="{{ url_for('events.index') }}" class="btn btn-small btn-secondary">Back</a>
+        </div>
+    </div>
     <p class="event-with-info">Invite <strong>{{ user.first_name }}</strong> to an event</p>
 
     <form method="post">

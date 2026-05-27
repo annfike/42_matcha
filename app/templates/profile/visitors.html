@@ -1,32 +1,51 @@
 {% extends "base.html" %}
 {% block title %}Profile Visitors - Matcha{% endblock %}
 {% block content %}
-<div class="visitors-page">
-    <h1>Who viewed your profile</h1>
+<div class="activity-page visitors-page">
+    <div class="page-header">
+        <div>
+            <h1>Who viewed your profile</h1>
+            {% if views %}
+            <p class="page-subtitle">{{ views|length }} visit{% if views|length != 1 %}s{% endif %} · newest first</p>
+            {% else %}
+            <p class="page-subtitle">Profile views from other users appear here</p>
+            {% endif %}
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('profile.edit') }}" class="btn btn-small btn-secondary">Back to profile</a>
+        </div>
+    </div>
+
     {% if views %}
-    <ul class="user-list">
+    <ul class="activity-list">
         {% for pv, viewer in views %}
-        <li class="user-item">
-            <a href="{{ url_for('profile.view', user_id=viewer.id) }}" class="user-link">
-                <div class="user-photo">
+        <li class="activity-item">
+            <a href="{{ url_for('profile.view', user_id=viewer.id) }}" class="activity-link">
+                <div class="activity-avatar">
                     {% if viewer.profile_picture %}
                     <img src="{{ url_for('uploaded_file', filename=viewer.profile_picture.filename) }}" alt="{{ viewer.first_name }}">
                     {% else %}
-                    <div class="no-photo-small">?</div>
+                    <div class="no-avatar">{{ (viewer.first_name or viewer.username or '?')[0] }}</div>
                     {% endif %}
                 </div>
-                <div class="user-info">
-                    <span class="name">{{ viewer.first_name }} {{ viewer.last_name }}</span>
-                    <span class="username">@{{ viewer.username }}</span>
-                    <span class="time">{{ pv.viewed_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                <div class="activity-body">
+                    <span class="activity-name">{{ viewer.first_name }} {{ viewer.last_name }}</span>
+                    <span class="activity-meta">@{{ viewer.username }}</span>
+                </div>
+                <div class="activity-aside">
+                    <span class="activity-badge activity-badge-view">Viewed</span>
+                    <span class="activity-time">{{ pv.viewed_at.strftime('%b %d, %H:%M') }}</span>
                 </div>
             </a>
         </li>
         {% endfor %}
     </ul>
     {% else %}
-    <p>No one has viewed your profile yet.</p>
+    <div class="empty-state">
+        <p class="empty-state-title">No visitors yet</p>
+        <p>When someone opens your profile, you will see them listed here.</p>
+        <a href="{{ url_for('profile.edit') }}" class="btn">Improve your profile</a>
+    </div>
     {% endif %}
-    <p><a href="{{ url_for('profile.edit') }}">Back to profile</a></p>
 </div>
 {% endblock %}

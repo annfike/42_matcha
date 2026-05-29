@@ -226,6 +226,27 @@ python scripts/seed_data.py
 
 All seeded users share the password: `Test1234!`
 
+The full seed run also fetches **real face photos** from [randomuser.me](https://randomuser.me) for seeded accounts (`*@example.com`). If a download fails, that user keeps a generated initial avatar instead.
+
+Extra flags:
+
+```bash
+python scripts/seed_data.py --real-photos   # only refresh photos for seeded users
+python scripts/seed_data.py --images-only   # only add missing placeholder avatars
+```
+
+### Photos for your own profile
+
+To fill photos for the account you use in the browser (without re-seeding everyone):
+
+```bash
+python scripts/generate_user_photos.py --username YOUR_USERNAME --gender male --count 3 --replace --set-main
+```
+
+- `--gender` must be `male` or `female` (which portrait set to use).
+- Up to **5 photos** per user (same limit as the web UI).
+- `--replace` deletes current gallery photos first; `--set-main` marks the first new one as the profile picture.
+
 Run this only on a development database, not production.
 
 ---

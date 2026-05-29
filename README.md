@@ -121,7 +121,8 @@ matcha/
 ├── migrations/
 │   └── schema.sql
 ├── scripts/
-│   └── seed_data.py
+│   ├── seed_data.py
+│   └── generate_user_photos.py
 ├── tests/
 ├── .env.example
 ├── requirements.txt
@@ -135,6 +136,32 @@ python scripts/seed_data.py
 ```
 
 Creates 500+ test profiles (Swiss cities, tags, likes, views). Password for all seeded users: `Test1234!`
+
+After seeding, the script downloads **real portrait photos** (randomuser.me) for users with `@example.com` emails. Users without a successful download keep colored initial avatars.
+
+| Flag | Purpose |
+|------|---------|
+| `--real-photos` | Only assign/replace real photos for existing seeded users |
+| `--images-only` | Only create placeholder avatars for users missing images |
+
+### Profile photos for one user
+
+Use when you need photos for your own account (or any user) without re-seeding:
+
+```bash
+python scripts/generate_user_photos.py --username YOUR_USERNAME --gender female --count 3 --set-main
+```
+
+| Option | Description |
+|--------|-------------|
+| `--user-id` / `--username` | Target user (one required) |
+| `--gender male\|female` | Portrait set to download |
+| `--count` | Number of photos (default 3, max 5 per profile) |
+| `--replace` | Remove existing photos first |
+| `--set-main` | Set the first new photo as profile picture |
+| `--force` | Allow more than 5 images (not recommended) |
+
+Requires network access. Files are saved under `UPLOAD_FOLDER` (default `app/uploads`).
 
 ## Testing
 

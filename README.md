@@ -40,7 +40,10 @@ python run.py
 
 Open **http://127.0.0.1:5001** (default port when using `run.py`). Step-by-step details, troubleshooting, and optional seed/tests: [docs/getting-started.md](docs/getting-started.md).
 
-## Demo
+<details>
+<summary><strong>Demo</strong> — walkthrough with two test accounts (screenshots and video)</summary>
+
+<br>
 
 Walkthrough with **two accounts**, top to bottom:
 
@@ -142,6 +145,8 @@ Walkthrough with **two accounts**, top to bottom:
 <p align="center"><a href="screenshots/video_demo_chat.mp4"><img src="screenshots/video_demo_poster.png" alt="App demo — click to play video" width="720"></a></p>
 
 <p align="center"><em>Click the preview to play the video.</em></p>
+
+</details>
 
 ## Environment variables
 

@@ -7,10 +7,10 @@ A dating website built with Flask and SQLite. Users register, verify email, comp
 
 ## Screenshots
 
-<p align="center">Demo with <strong>two accounts</strong>, top to bottom:</p>
+Demo with **two accounts**, top to bottom:
 
-<p align="center"><strong>User 1</strong> — register, verify email, log in, fill profile, add photos via CLI.<br>
-<strong>User 2</strong> — register, verify email, log in, complete profile, then browse and use chat, notifications, events, and video.</p>
+- **User 1** — register, verify email, log in, fill profile, add photos via CLI.
+- **User 2** — register, verify email, log in, complete profile, then browse and use chat, notifications, events, and video.
 
 <h3 align="center">User 1 — register, log in, complete profile</h3>
 
@@ -100,13 +100,13 @@ A dating website built with Flask and SQLite. Users register, verify email, comp
 
 <p align="center"><img src="screenshots/notifications.png" alt="Notifications" width="720"></p>
 
-<p align="center"><strong>App demo (video)</strong> — screen recording while logged in as user 2: browsing <strong>Suggestions</strong>, <strong>Search</strong>, <strong>Map</strong>, <strong>Events</strong>, <strong>Chat</strong>, <strong>Notifications</strong>, <strong>Who liked you</strong> / <strong>Who viewed your profile</strong>, and a <strong>video call</strong> between the two test accounts. Not only chat — the clip walks through the main pages of the app in use.</p>
+**App demo (video)** — screen recording while logged in as user 2: browsing **Suggestions**, **Search**, **Map**, **Events**, **Chat**, **Notifications**, **Who liked you** / **Who viewed your profile**, and a **video call** between the two test accounts. Not only chat — the clip walks through the main pages of the app in use.
 
-<p align="center">
-  <video src="screenshots/video_demo_chat.mov" width="720" controls playsinline>
-    <a href="screenshots/video_demo_chat.mov">Download video if the player does not load</a>
-  </video>
-</p>
+**[▶ Watch app demo (MP4)](screenshots/video_demo_chat.mp4)** — on GitHub, open this link to play in the browser (~2.5 min). README cannot embed video inline; use the link or the preview below.
+
+<p align="center"><a href="screenshots/video_demo_chat.mp4"><img src="screenshots/video_demo_poster.png" alt="App demo — click to play video" width="720"></a></p>
+
+<p align="center"><em>Click the preview to play the video.</em></p>
 
 ## Tech stack
 

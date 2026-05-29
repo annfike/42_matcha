@@ -5,41 +5,6 @@ A dating website built with Flask and SQLite. Users register, verify email, comp
 **Full setup from scratch:** [docs/getting-started.md](docs/getting-started.md)  
 **OAuth (Google, GitHub, 42 Intra):** [docs/oauth-setup.md](docs/oauth-setup.md)
 
-## Tech stack
-
-| Layer | Technology |
-|-------|------------|
-| Backend | Flask (Python) |
-| Database | SQLite (`sqlite3`, parameterized SQL) |
-| Frontend | HTML, CSS, JavaScript |
-| Real-time | Flask-SocketIO (chat, notifications, call signaling) |
-| Email | Flask-Mail |
-| Auth | Flask-Login, Flask-Bcrypt |
-| OAuth | Authlib (Google, GitHub, 42 Intra — optional) |
-| File upload | Werkzeug + Pillow (images) |
-| Location | JavaScript Geolocation API + manual city fallback |
-| Maps | Leaflet.js (interactive user map) |
-
-## Prerequisites
-
-- Python 3.8+ (includes SQLite)
-- SMTP (recommended) for email verification and password reset (e.g. Gmail with an app password)
-
-## Quick start
-
-```bash
-git clone <repository-url> matcha && cd matcha
-python3 -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env                                # edit SECRET_KEY, DATABASE_URL, MAIL_*
-export FLASK_APP=run.py
-flask init-db
-mkdir -p app/uploads
-python run.py
-```
-
-Open **http://127.0.0.1:5001** (default port when using `run.py`). Step-by-step details, troubleshooting, and optional seed/tests: [docs/getting-started.md](docs/getting-started.md).
-
 <details>
 <summary><strong>Demo</strong> — walkthrough with two test accounts (screenshots and video)</summary>
 
@@ -147,6 +112,41 @@ Walkthrough with **two accounts**, top to bottom:
 <p align="center"><em>Click the preview to play the video.</em></p>
 
 </details>
+
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | Flask (Python) |
+| Database | SQLite (`sqlite3`, parameterized SQL) |
+| Frontend | HTML, CSS, JavaScript |
+| Real-time | Flask-SocketIO (chat, notifications, call signaling) |
+| Email | Flask-Mail |
+| Auth | Flask-Login, Flask-Bcrypt |
+| OAuth | Authlib (Google, GitHub, 42 Intra — optional) |
+| File upload | Werkzeug + Pillow (images) |
+| Location | JavaScript Geolocation API + manual city fallback |
+| Maps | Leaflet.js (interactive user map) |
+
+## Prerequisites
+
+- Python 3.8+ (includes SQLite)
+- SMTP (recommended) for email verification and password reset (e.g. Gmail with an app password)
+
+## Quick start
+
+```bash
+git clone <repository-url> matcha && cd matcha
+python3 -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env                                # edit SECRET_KEY, DATABASE_URL, MAIL_*
+export FLASK_APP=run.py
+flask init-db
+mkdir -p app/uploads
+python run.py
+```
+
+Open **http://127.0.0.1:5001** (default port when using `run.py`). Step-by-step details, troubleshooting, and optional seed/tests: [docs/getting-started.md](docs/getting-started.md).
 
 ## Environment variables
 

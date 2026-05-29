@@ -5,6 +5,111 @@ A dating website built with Flask and SQLite. Users register, verify email, comp
 **Full setup from scratch:** [docs/getting-started.md](docs/getting-started.md)  
 **OAuth (Google, GitHub, 42 Intra):** [docs/oauth-setup.md](docs/oauth-setup.md)
 
+## Screenshots
+
+Demo with **two accounts**, top to bottom:
+
+- **User 1** — register, verify email, log in, fill profile, add photos via CLI.
+- **User 2** — register, verify email, log in, complete profile, then browse and use chat, notifications, events, and video.
+
+### User 1 — register, log in, complete profile
+
+**Register — empty form** — fields before the first account is created.
+
+<p align="center"><img src="screenshots/register_empty.png" alt="Register — empty form" width="720"></p>
+
+**Register — user 1** — filled sign-up form ready to submit.
+
+<p align="center"><img src="screenshots/register_user1.png" alt="Register — user 1" width="720"></p>
+
+**After sign-up** — redirect to the login page.
+
+<p align="center"><img src="screenshots/redirect_to_login_after_register.png" alt="Redirect to login" width="720"></p>
+
+**Verify email (user 1)** — open the link from the inbox to activate the account.
+
+<p align="center"><img src="screenshots/verification_email_user1.png" alt="Verification email user 1" width="720"></p>
+
+**Log in (user 1)** — sign in after the email is verified.
+
+<p align="center"><img src="screenshots/login.png" alt="Login user 1" width="720"></p>
+
+**Edit profile — details** — name, bio, gender, preferences, and tags.
+
+<p align="center"><img src="screenshots/edit_profile_after_first_login.png" alt="Edit profile details" width="720"></p>
+
+**Edit profile — location and stats** — geolocation or city, fame rating, and profile completion.
+
+<p align="center"><img src="screenshots/edit_profile_after_first_login_2.png" alt="Edit profile location" width="720"></p>
+
+**Generate photos (CLI)** — for local demos, download portrait images for user 1 from the project root (network required). Replace `USERNAME` and `male|female` with your values; full options in [Profile photos for one user](#profile-photos-for-one-user).
+
+```bash
+python scripts/generate_user_photos.py --username USERNAME --gender male --count 3 --set-main
+```
+
+**Edit profile — photos (user 1)** — gallery after the script uploads images and sets the main picture.
+
+<p align="center"><img src="screenshots/edit_profile_after_genaration_fotos1.png" alt="User 1 profile with photos" width="720"></p>
+
+### User 2 — register, profile, then the rest of the app
+
+**Register — user 2** — second account while user 1 is already in the database.
+
+<p align="center"><img src="screenshots/register_user2.png" alt="Register user 2" width="720"></p>
+
+**Verify email (user 2)** — confirmation message for the second account.
+
+<p align="center"><img src="screenshots/verification_email_user2.png" alt="Verification email user 2" width="720"></p>
+
+**Log in (user 2)** — same login page, second username.
+
+<p align="center"><img src="screenshots/login.png" alt="Login user 2" width="720"></p>
+
+**Edit profile — photos (user 2)** — second user finishes profile setup (required before suggestions unlock).
+
+<p align="center"><img src="screenshots/edit_profile_after_genaration_fotos2.png" alt="User 2 edit profile with photos" width="720"></p>
+
+**Suggestions** — personalized cards, filters, and likes.
+
+<p align="center"><img src="screenshots/suggestions.png" alt="Suggestions" width="720"></p>
+
+**Search** — advanced filters and tag-based discovery.
+
+<p align="center"><img src="screenshots/search.png" alt="Search" width="720"></p>
+
+**Map** — nearby users on an interactive map.
+
+<p align="center"><img src="screenshots/map.png" alt="Map" width="720"></p>
+
+**Events** — schedule and manage date invitations with matches.
+
+<p align="center"><img src="screenshots/events_empty.png" alt="Events" width="720"></p>
+
+**Who liked you** — list of users who liked your profile (from profile stats).
+
+<p align="center"><img src="screenshots/who_liked_you_empty.png" alt="Who liked you" width="720"></p>
+
+**Who viewed your profile** — recent profile visitors.
+
+<p align="center"><img src="screenshots/who_viewed_your_profile_empty.png" alt="Who viewed your profile" width="720"></p>
+
+**Chat** — real-time messaging with mutual matches (SocketIO).
+
+<p align="center"><img src="screenshots/chat.png" alt="Chat" width="720"></p>
+
+**Notifications** — likes, views, messages, and matches in one feed.
+
+<p align="center"><img src="screenshots/notifications.png" alt="Notifications" width="720"></p>
+
+**App demo (video)** — screen recording while logged in as user 2: browsing **Suggestions**, **Search**, **Map**, **Events**, **Chat**, **Notifications**, **Who liked you** / **Who viewed your profile**, and a **video call** between the two test accounts. Not only chat — the clip walks through the main pages of the app in use.
+
+<p align="center">
+  <video src="screenshots/video_demo_chat.mov" width="720" controls playsinline>
+    <a href="screenshots/video_demo_chat.mov">Download video if the player does not load</a>
+  </video>
+</p>
+
 ## Tech stack
 
 | Layer | Technology |
@@ -123,6 +228,7 @@ matcha/
 ├── scripts/
 │   ├── seed_data.py
 │   └── generate_user_photos.py
+├── screenshots/              # README walkthrough (PNG + demo video)
 ├── tests/
 ├── .env.example
 ├── requirements.txt
